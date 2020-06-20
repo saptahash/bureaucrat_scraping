@@ -50,6 +50,30 @@ def scrape(URL):
                 service_cadre_year.append(col[index+1].text)
             if(i.text == "Gender : "):
                 gender.append(col[index+1].text)
+                ######################## experience table
+    all_tables = soup_alt.find_all("table", attrs = {"id" : "rounded-cornerA"})
+    table_exp = all_tables[1]
+    heading = table_exp.find_all("th") #stores all the heading names for experience
+    for i in heading:
+        print(i.text)
+        print("")
+        exp_details = table_exp.find("tbody")
+        exp_details = exp_details.find_all("tr")
+        for x in exp_details: #all experience details
+            col = x.find_all("td")
+            for y in col:
+                print(y.text)
+        
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
         #id_no.append(col[0].text)
         #name.append({col[1].text)
     #name.append("Break")
