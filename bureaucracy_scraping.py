@@ -14,38 +14,96 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
-
+import re
+#import regex
+'''
+txt = "<a href=\"https://supremo.nic.in/ERSheetHtml.aspx?OffIDErhtml=14589&amp;PageId=\" target=\"_blank\" title=\"Click to view ER sheet\">"
+x = re.findall("a href=\".*\" target" , txt)
+print(x)
+txt = "The rain in Spain"
+x = re.findall("in",txt)
+print(x)
+'''
 
 #from selenium import webdriver
 #br = Browser('Firefox')
 #driver = webdriver.Firefox()
-centralDB = "https://easy.nic.in/civilListIAS/YrPrev/QryProcessCL.asp" #URL of database with all IAS officers listed
+#centralDB = "https://easy.nic.in/civilListIAS/YrPrev/QryProcessCL.asp" #URL of database with all IAS officers listed
 centralDB2 = 'https://easy.nic.in/civilListIAS/YrPrev/ListOfQueriesCL.htm' #Base URL where selections need to be made, routing through centralDB doesn't work
+driver = webdriver.Firefox(executable_path = 'C:/Users/sapta/Downloads/software/geckodriver-v0.26.0-win64/geckodriver.exe')
+driver.get(centralDB2)
+link = driver.find_element_by_link_text('Name')
+link.click()
+selectcadre = Select(driver.find_element_by_name("CboCadre"))
+selectcadre.select_by_visible_text("AGMUT")
+selectyear = Select(driver.find_element_by_name("CboBatch"))
+selectyear.select_by_visible_text("1984")
+
+submitlink = driver.find_element_by_xpath('/html/body/form/div/center/table/tbody/tr[7]/td/input[1]')
+submitlink.click()
+#so far, we click through to get list    
+
+#next steps - extract links of biodata pages
+newDB = driver.page_source
+soup_main = BeautifulSoup(newDB, "lxml")
+
+hrefs = soup_main.find_all('a')
+print(hrefs)
+
+for i in hrefs:
+   if(str(i.attrs['href'])[:5] == "https"):
+       print(i.attrs['href'])
+       #scrape funtion instead of this
+       print("i")
+for i in hrefs:
+    print(i.attrs['href'])
+    
+
+print(soup_main.find_all('a')[4].attrs['href'])
+
+
+
+print(re.search("href=*>",soup_main.text))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #driver.get(centralDB)
 
 #driver = webdriver.Chrome(executable_path = 'C:/Users/sapta/Downloads/software/chromedriver_win32/chromedriver.exe')
 #executable_path = {'executable_path':'C:/Users/sapta/Downloads/software/chromedriver_win32/chromedriver.exe'}
-driver = webdriver.Firefox(executable_path = 'C:/Users/sapta/Downloads/software/geckodriver-v0.26.0-win64/geckodriver.exe')
 #Firefox will be used hereon
 # get web page
-driver.get(centralDB2)
-link = driver.find_element_by_link_text('Name')
-link.click()
 #make cadre and year selections
-selectcadre = Select(driver.find_element_by_name("CboCadre"))
-selectcadre.select_by_visible_text("AGMUT")
 
-selectyear = Select(driver.find_element_by_name("CboBatch"))
-selectyear.select_by_visible_text("1984")
+
 #click submit and follow on - currently using xpath
-submitlink = driver.find_element_by_xpath('/html/body/form/div/center/table/tbody/tr[7]/td/input[1]')
-submitlink.click()
 
+
+x = re.findall("a href=\".*\" target" , soup_main)
+print(soup_main)
+driver.quit()
 #results = driver.find_element_by_xpath("//a[@title='Click to view ER sheet']/@href")
 
-#time.sleep(20)
-#infolink = driver.find_element_by_xpath('/html/body/table/tbody/tr[2]/td[2]/a')
-#infolink.click()
+time.sleep(20)
+infolink = driver.find_element_by_xpath('/html/body/table/tbody/tr[2]/td[2]/a')
+infolink.click()
 #time.sleep(5)
 #print()
 
@@ -61,13 +119,13 @@ finally:
 #driver.execute_script("window.scrollTo(0, document.body.scrollHeight);var lenOfPage=document.body.scrollHeight;return lenOfPage;")
 # sleep for 30s
 #time.sleep(30)
-# driver.quit()
+
 '''
 
 newDB = driver.page_source #THIS IS WHERE THINGS GO WRONG
-#soup_alt = BeautifulSoup(newDB, "lxml")
-html_content = requests.get(newDB).text #HTML SOURCE HAS WEIRD TAGS, NOT THE SAME AS requests(URL)
-soup_alt = BeautifulSoup(html_content, 'lxml')
+soup_alt = BeautifulSoup(newDB, "lxml")
+#html_content = requests.get(newDB).text #HTML SOURCE HAS WEIRD TAGS, NOT THE SAME AS requests(URL)
+#soup_alt = BeautifulSoup(html_content, 'lxml')
 #driver.quit()
 '''
 #page_central = driver.page_source
