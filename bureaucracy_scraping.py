@@ -15,6 +15,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 import re
+import pandas as pd
 #import regex
 '''
 txt = "<a href=\"https://supremo.nic.in/ERSheetHtml.aspx?OffIDErhtml=14589&amp;PageId=\" target=\"_blank\" title=\"Click to view ER sheet\">"
@@ -24,6 +25,46 @@ txt = "The rain in Spain"
 x = re.findall("in",txt)
 print(x)
 '''
+
+name = [] #1
+id_no = [] #2
+service_cadre_year = [] #2
+gender = [] #6
+
+def scrape(URL):
+    html_content = requests.get(URL).text
+    soup_alt = BeautifulSoup(html_content, 'lxml')
+    #print(soup_alt.prettify())  
+    #getting introtable
+    introtable = soup_alt.find("table", attrs = {"id": "one-column-emphasis"})
+    introtable_data = introtable.tbody.find_all("tr") #should extract all the rows
+    i=0
+    for x in introtable_data: #seems to work
+        col = x.find_all("td")
+        for index, i in enumerate(col):
+            if(i.text == "Name : "):
+                name.append(col[index+1].text)
+            if(i.text == "Identity No. : "):
+                id_no.append(col[index+1].text)
+            if(i.text == "Service/ Cadre/ Allotment Year : "):
+                service_cadre_year.append(col[index+1].text)
+            if(i.text == "Gender : "):
+                gender.append(col[index+1].text)
+        #id_no.append(col[0].text)
+        #name.append({col[1].text)
+    #name.append("Break")
+        #for y in col:
+         #   print(y.text) #perfectly extracts all the required introductory information
+
+
+
+
+
+
+
+
+
+
 
 #from selenium import webdriver
 #br = Browser('Firefox')
@@ -42,7 +83,7 @@ selectyear.select_by_visible_text("1984")
 submitlink = driver.find_element_by_xpath('/html/body/form/div/center/table/tbody/tr[7]/td/input[1]')
 submitlink.click()
 #so far, we click through to get list    
-
+time.sleep(20) #to allow page to fully load before getting source HTML
 #next steps - extract links of biodata pages
 newDB = driver.page_source
 soup_main = BeautifulSoup(newDB, "lxml")
@@ -52,8 +93,10 @@ print(hrefs)
 
 for i in hrefs:
    if(str(i.attrs['href'])[:5] == "https"):
-       print(i.attrs['href'])
-       #scrape funtion instead of this
+       scrape(str(i.attrs['href']))
+     
+        
+       
        print("i")
 for i in hrefs:
     print(i.attrs['href'])
@@ -155,10 +198,10 @@ print(result_1.prettify())
 
 ########################
 #Code for scraping once biodata sheet is obtained
-URL = 'https://supremo.nic.in/ERSheetHtml.aspx?OffIDErhtml=14583&PageId='
-html_content = requests.get(URL).text
-soup_alt = BeautifulSoup(html_content, 'lxml')
-print(soup_alt.prettify())
+#URL = 'https://supremo.nic.in/ERSheetHtml.aspx?OffIDErhtml=14583&PageId='
+#html_content = requests.get(URL).text
+#soup_alt = BeautifulSoup(html_content, 'lxml')
+#print(soup_alt.prettify())
 
 #print(soup.title) #prints title
 #print(soup.title.text) #prints title text only
