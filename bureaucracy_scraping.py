@@ -30,8 +30,21 @@ name = [] #1
 id_no = [] #2
 service_cadre_year = [] #2
 gender = [] #6
+exp_no = []
+
+exp_no_dict = {}
+designation_dict = {}
+dept_dict = {}
+org_dict = {}
+exp_dict = {}
+period_dict = {}
+name_dict = {} #1
+service_cadre_year_dict = {} #2
+gender_dict = {} #6
+experience_details = {}
 
 def scrape(URL):
+    exp_no.clear()
     html_content = requests.get(URL).text
     soup_alt = BeautifulSoup(html_content, 'lxml')
     #print(soup_alt.prettify())  
@@ -50,22 +63,37 @@ def scrape(URL):
                 service_cadre_year.append(col[index+1].text)
             if(i.text == "Gender : "):
                 gender.append(col[index+1].text)
-                ######################## experience table
+    name_dict[id_no[-1]] = name[-1]
+    service_cadre_year_dict[id_no[-1]] = service_cadre_year[-1]
+    gender_dict[id_no[-1]] = gender[-1]
+    # so far: name, id_no _service_cadre_year and gender lists capture the respective entries
+######################## experience table
+# CODE OPTIMISATION NOTES
+#1. DS - dictionary based, easier to merge when converting to DF 
     all_tables = soup_alt.find_all("table", attrs = {"id" : "rounded-cornerA"})
     table_exp = all_tables[1]
-    heading = table_exp.find_all("th") #stores all the heading names for experience
-    for i in heading:
-        print(i.text)
-        print("")
-        exp_details = table_exp.find("tbody")
-        exp_details = exp_details.find_all("tr")
-        for x in exp_details: #all experience details
-            col = x.find_all("td")
-            for y in col:
-                print(y.text)
-        
+    exp_details = table_exp.find("tbody")
+    exp_details = exp_details.find_all("tr")
+    for x in exp_details: #all experience details
+        col = x.find_all("td")
+        exp_no.append(str(col[0].text))
+        designation_dict[str(id_no[-1]) , str(col[0].text)] = col[1].text
+        dept_dict[str(id_no[-1]) , str(col[0].text)] = col[2].text
+        org_dict[str(id_no[-1]) , str(col[0].text)] = col[3].text
+        exp_dict[str(id_no[-1]) , str(col[0].text)] = col[4].text
+        period_dict[str(id_no[-1]) , str(col[0].text)] = col[5].text
+    exp_no_dict[str(id_no[-1])] = list(exp_no)
+# Only scraping experience and id-details here - rest of the script is commented further down if needed    
 
-    
+
+def create_df(dict_func):
+    base_df = pd.DataFrame.from_dict(dict_func, orient = "index").sort_index().stack().reset_index(level = 1, drop = True).reset_index()       
+    base_df.columns = ["ID", "Name"]
+    return(base_df)
+
+def create_tupledf(dict_func, colname):
+    df = pd.Series(dict_func).rename_axis(["ID", "exp_no"]).reset_index(name = str(colname))
+    return(df)
     
     
     
@@ -113,26 +141,30 @@ newDB = driver.page_source
 soup_main = BeautifulSoup(newDB, "lxml")
 
 hrefs = soup_main.find_all('a')
-print(hrefs)
+
+# identify if hreps are valid links, and then send them to scrape function
+
+# put together everything in a dataframe 
 
 for i in hrefs:
    if(str(i.attrs['href'])[:5] == "https"):
        scrape(str(i.attrs['href']))
-     
-        
-       
-       print("i")
-for i in hrefs:
-    print(i.attrs['href'])
+
+base_df = create_df(name_dict) 
+cadre_df = create_df(service_cadre_year_dict)
+gender_df = create_df(gender_dict)
+exp_key_df = create_df(exp_no_dict)
+
+designation_df = create_tupledf(designation_dict, "Designation")
+dept_df = create_tupledf(dept_dict, "Department")
+org_df = create_tupledf(org_dict, "Organisation")
+div_df = create_tupledf(exp_dict, "Division")
+period_df = create_tupledf(period_dict, "Period")
+
+
+
+
     
-
-print(soup_main.find_all('a')[4].attrs['href'])
-
-
-
-print(re.search("href=*>",soup_main.text))
-
-
 
 
 
