@@ -86,16 +86,14 @@ def scrape(URL):
 # Only scraping experience and id-details here - rest of the script is commented further down if needed    
 
 
-def create_df(dict_func):
+def create_df(dict_func, colname):
     base_df = pd.DataFrame.from_dict(dict_func, orient = "index").sort_index().stack().reset_index(level = 1, drop = True).reset_index()       
-    base_df.columns = ["ID", "Name"]
+    base_df.columns = ["ID", str(colname)]
     return(base_df)
 
 def create_tupledf(dict_func, colname):
     df = pd.Series(dict_func).rename_axis(["ID", "exp_no"]).reset_index(name = str(colname))
     return(df)
-    
-    
     
     
     
@@ -150,10 +148,10 @@ for i in hrefs:
    if(str(i.attrs['href'])[:5] == "https"):
        scrape(str(i.attrs['href']))
 
-base_df = create_df(name_dict) 
-cadre_df = create_df(service_cadre_year_dict)
-gender_df = create_df(gender_dict)
-exp_key_df = create_df(exp_no_dict)
+base_df = create_df(name_dict, "Name") 
+cadre_df = create_df(service_cadre_year_dict, "Cadre")
+gender_df = create_df(gender_dict, "Gender")
+exp_key_df = create_df(exp_no_dict, "exp_no")
 
 designation_df = create_tupledf(designation_dict, "Designation")
 dept_df = create_tupledf(dept_dict, "Department")
@@ -162,18 +160,15 @@ div_df = create_tupledf(exp_dict, "Division")
 period_df = create_tupledf(period_dict, "Period")
 
 
+#merges dataframes to give final result
+dflist = [cadre_df, gender_df, exp_key_df]
+final_df = base_df
+for i in dflist:
+    final_df = pd.merge(final_df, i, on = "ID")
 
-
-    
-
-
-
-
-
-
-
-
-
+tuple_dflist = [designation_df, dept_df, org_df, div_df, period_df]
+for i in tuple_dflist:
+    final_df = pd.merge(final_df, i, on = ["ID", "exp_no"])
 
 
 
@@ -182,6 +177,18 @@ period_df = create_tupledf(period_dict, "Period")
 
 
 
+
+
+
+
+
+
+
+
+###################
+###   CODE ROUGHWORK 
+##################
+'''
 
 #driver.get(centralDB)
 
@@ -206,7 +213,7 @@ infolink.click()
 #time.sleep(5)
 #print()
 
-'''
+
 delay = 100 # seconds
 try:
     myElem = WebDriverWait(driver, delay).until(EC.presence_of_element_located((By.NAME, 'Photo')))
@@ -219,14 +226,13 @@ finally:
 # sleep for 30s
 #time.sleep(30)
 
-'''
 
 newDB = driver.page_source #THIS IS WHERE THINGS GO WRONG
 soup_alt = BeautifulSoup(newDB, "lxml")
 #html_content = requests.get(newDB).text #HTML SOURCE HAS WEIRD TAGS, NOT THE SAME AS requests(URL)
 #soup_alt = BeautifulSoup(html_content, 'lxml')
 #driver.quit()
-'''
+
 #page_central = driver.page_source
 #page_central = requests.get(centralDB).text
 #soup_central = BeautifulSoup(page_central, 'lxml')
@@ -250,7 +256,6 @@ print(table1_body)
 
 result_1 = soup.find(id = 'one-column-emphasis')
 print(result_1.prettify())
-'''
 
 ########################
 #Code for scraping once biodata sheet is obtained
@@ -383,4 +388,6 @@ for x in fortraining_details: #table content
     for y in col:
         print(y.text)
 ####################################
+        
+'''
         
