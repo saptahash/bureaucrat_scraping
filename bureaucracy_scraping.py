@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 """
 Created on Sun Apr 26 03:41:13 2020
 
@@ -7,15 +7,15 @@ Created on Sun Apr 26 03:41:13 2020
 
 import requests
 from bs4 import BeautifulSoup
-from splinter.browser import Browser
+#from splinter.browser import Browser
 from selenium import webdriver
 import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
-import re
 import pandas as pd
+import concurrent.futures
 #import regex
 '''
 txt = "<a href=\"https://supremo.nic.in/ERSheetHtml.aspx?OffIDErhtml=14589&amp;PageId=\" target=\"_blank\" title=\"Click to view ER sheet\">"
@@ -31,6 +31,7 @@ id_no = [] #2
 service_cadre_year = [] #2
 gender = [] #6
 exp_no = []
+cadre_list = []
 
 exp_no_dict = {}
 designation_dict = {}
@@ -42,6 +43,8 @@ name_dict = {} #1
 service_cadre_year_dict = {} #2
 gender_dict = {} #6
 experience_details = {}
+hrefs_dict = {}
+hrefs_dict_backup = {}
 
 def scrape(URL):
     exp_no.clear()
@@ -95,26 +98,27 @@ def create_tupledf(dict_func, colname):
     df = pd.Series(dict_func).rename_axis(["ID", "exp_no"]).reset_index(name = str(colname))
     return(df)
     
+def scrape_URLlist(cadre_name):  
+    driver = webdriver.Firefox(executable_path = 'C:/Users/sapta/Downloads/software/geckodriver-v0.26.0-win64/geckodriver.exe')
+    driver.get(centralDB2)
+    link = driver.find_element_by_link_text('Name')
+    link.click()
+    selectcadre = Select(driver.find_element_by_name("CboCadre"))
+    selectcadre.select_by_visible_text(str(cadre_name.strip()))
+    selectyear = Select(driver.find_element_by_name("CboBatch"))
+    selectyear.select_by_visible_text("---All---")    
+    submitlink = driver.find_element_by_xpath('/html/body/form/div/center/table/tbody/tr[7]/td/input[1]')
+    submitlink.click()
+    #so far, we click through to get list    
+    time.sleep(60) #to allow page to fully load before getting source HTML
+    #next steps - extract links of biodata pages
+    newDB = driver.page_source
+    soup_main = BeautifulSoup(newDB, "lxml")
+    hrefs_dict[str(cadre_name)] = soup_main.find_all('a')
+    driver.quit()
+    print(f'scraped {cadre_name} state')
+    return f'scraped {cadre_name} state'
     
-    
-    
-    
-    
-        #id_no.append(col[0].text)
-        #name.append({col[1].text)
-    #name.append("Break")
-        #for y in col:
-         #   print(y.text) #perfectly extracts all the required introductory information
-
-
-
-
-
-
-
-
-
-
 
 #from selenium import webdriver
 #br = Browser('Firefox')
@@ -123,54 +127,69 @@ def create_tupledf(dict_func, colname):
 centralDB2 = 'https://easy.nic.in/civilListIAS/YrPrev/ListOfQueriesCL.htm' #Base URL where selections need to be made, routing through centralDB doesn't work
 driver = webdriver.Firefox(executable_path = 'C:/Users/sapta/Downloads/software/geckodriver-v0.26.0-win64/geckodriver.exe')
 driver.get(centralDB2)
+
 link = driver.find_element_by_link_text('Name')
 link.click()
-selectcadre = Select(driver.find_element_by_name("CboCadre"))
-selectcadre.select_by_visible_text("AGMUT")
-selectyear = Select(driver.find_element_by_name("CboBatch"))
-selectyear.select_by_visible_text("1984")
 
-submitlink = driver.find_element_by_xpath('/html/body/form/div/center/table/tbody/tr[7]/td/input[1]')
-submitlink.click()
-#so far, we click through to get list    
-time.sleep(20) #to allow page to fully load before getting source HTML
-#next steps - extract links of biodata pages
-newDB = driver.page_source
-soup_main = BeautifulSoup(newDB, "lxml")
+intermediate_clickthrough = driver.page_source
+soup_inter = BeautifulSoup(intermediate_clickthrough, "lxml")
 
-hrefs = soup_main.find_all('a')
+#to select lists by cadre
+options_all = soup_inter.find_all('option')
 
+for i in options_all:
+    if(i.text == "All Cadres"):
+        continue
+    if(i.text == "---All---"):
+        break
+    else:
+        cadre_list.append(str(i.text).strip())
+driver.quit()
 # identify if hreps are valid links, and then send them to scrape function
-
-# put together everything in a dataframe 
-
-for i in hrefs:
-   if(str(i.attrs['href'])[:5] == "https"):
-       scrape(str(i.attrs['href']))
-
-base_df = create_df(name_dict, "Name") 
-cadre_df = create_df(service_cadre_year_dict, "Cadre")
-gender_df = create_df(gender_dict, "Gender")
-exp_key_df = create_df(exp_no_dict, "exp_no")
-
-designation_df = create_tupledf(designation_dict, "Designation")
-dept_df = create_tupledf(dept_dict, "Department")
-org_df = create_tupledf(org_dict, "Organisation")
-div_df = create_tupledf(exp_dict, "Division")
-period_df = create_tupledf(period_dict, "Period")
+for cadre_name in cadre_list:
+    scrape_URLlist(cadre_name)
+    
+#hrefs_dict_backup = hrefs_dict
+with concurrent.futures.ThreadPoolExecutor() as executor:
+    interlist = executor.map(scrape_URLlist, cadre_list)
+    results = []
+    for i in concurrent.futures.as_completed(interlist):
+        results.append(i)
+        
 
 
-#merges dataframes to give final result
-dflist = [cadre_df, gender_df, exp_key_df]
-final_df = base_df
-for i in dflist:
-    final_df = pd.merge(final_df, i, on = "ID")
 
-tuple_dflist = [designation_df, dept_df, org_df, div_df, period_df]
-for i in tuple_dflist:
-    final_df = pd.merge(final_df, i, on = ["ID", "exp_no"])
-
-
+#commenting out
+#for f in interlist:
+#    pr
+#scrape_URLlist(cadre_list[0])
+## put together everything in a dataframe 
+#
+#for i in hrefs:
+#   if(str(i.attrs['href'])[:5] == "https"):
+#       scrape(str(i.attrs['href']))
+#
+#base_df = create_df(name_dict, "Name") 
+#cadre_df = create_df(service_cadre_year_dict, "Cadre")
+#gender_df = create_df(gender_dict, "Gender")
+#exp_key_df = create_df(exp_no_dict, "exp_no")
+#
+#designation_df = create_tupledf(designation_dict, "Designation")
+#dept_df = create_tupledf(dept_dict, "Department")
+#org_df = create_tupledf(org_dict, "Organisation")
+#div_df = create_tupledf(exp_dict, "Division")
+#period_df = create_tupledf(period_dict, "Period")
+#
+#
+##merges dataframes to give final result
+#dflist = [cadre_df, gender_df, exp_key_df]
+#final_df = base_df
+#for i in dflist:
+#    final_df = pd.merge(final_df, i, on = "ID")
+#
+#tuple_dflist = [designation_df, dept_df, org_df, div_df, period_df]
+#for i in tuple_dflist:
+#    final_df = pd.merge(final_df, i, on = ["ID", "exp_no"])
 
 
 
