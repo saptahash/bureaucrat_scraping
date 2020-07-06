@@ -16,15 +16,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 import pandas as pd
 import concurrent.futures
-#import regex
-'''
-txt = "<a href=\"https://supremo.nic.in/ERSheetHtml.aspx?OffIDErhtml=14589&amp;PageId=\" target=\"_blank\" title=\"Click to view ER sheet\">"
-x = re.findall("a href=\".*\" target" , txt)
-print(x)
-txt = "The rain in Spain"
-x = re.findall("in",txt)
-print(x)
-'''
 
 name = [] #1
 id_no = [] #2
@@ -32,6 +23,7 @@ service_cadre_year = [] #2
 gender = [] #6
 exp_no = []
 cadre_list = []
+hrefs = []
 
 exp_no_dict = {}
 designation_dict = {}
@@ -118,6 +110,7 @@ def scrape_URLlist(cadre_name):
     driver.quit()
     print(f'scraped {cadre_name} state')
     return f'scraped {cadre_name} state'
+
     
 
 #from selenium import webdriver
@@ -150,47 +143,48 @@ for cadre_name in cadre_list:
     scrape_URLlist(cadre_name)
     
 #hrefs_dict_backup = hrefs_dict
+
+#valuelist = lambda x: x.
+#map(valuelist, hrefs_dict.values())
+#
+#text_retriever = lambda x: x.attrs['href']
+#hrefs = list(map(text_retriever, hrefs_list))
+    
+for key in hrefs_dict.keys():
+    hrefs += hrefs_dict[key][2:-2]
+
+link_retriever = lambda x: x.attrs['href']
+hrefs = list(map(link_retriever, hrefs))
+
 with concurrent.futures.ThreadPoolExecutor() as executor:
-    interlist = executor.map(scrape_URLlist, cadre_list)
+    interlist = executor.map(scrape, hrefs)
     results = []
     for i in concurrent.futures.as_completed(interlist):
         results.append(i)
-        
+
+base_df = create_df(name_dict, "Name") 
+cadre_df = create_df(service_cadre_year_dict, "Cadre")
+gender_df = create_df(gender_dict, "Gender")
+exp_key_df = create_df(exp_no_dict, "exp_no")
+
+designation_df = create_tupledf(designation_dict, "Designation")
+dept_df = create_tupledf(dept_dict, "Department")
+org_df = create_tupledf(org_dict, "Organisation")
+div_df = create_tupledf(exp_dict, "Division")
+period_df = create_tupledf(period_dict, "Period")
 
 
+#merges dataframes to give final result
+dflist = [cadre_df, gender_df, exp_key_df]
+final_df = base_df
+for i in dflist:
+    final_df = pd.merge(final_df, i, on = "ID")
 
-#commenting out
-#for f in interlist:
-#    pr
-#scrape_URLlist(cadre_list[0])
-## put together everything in a dataframe 
-#
-#for i in hrefs:
-#   if(str(i.attrs['href'])[:5] == "https"):
-#       scrape(str(i.attrs['href']))
-#
-#base_df = create_df(name_dict, "Name") 
-#cadre_df = create_df(service_cadre_year_dict, "Cadre")
-#gender_df = create_df(gender_dict, "Gender")
-#exp_key_df = create_df(exp_no_dict, "exp_no")
-#
-#designation_df = create_tupledf(designation_dict, "Designation")
-#dept_df = create_tupledf(dept_dict, "Department")
-#org_df = create_tupledf(org_dict, "Organisation")
-#div_df = create_tupledf(exp_dict, "Division")
-#period_df = create_tupledf(period_dict, "Period")
-#
-#
-##merges dataframes to give final result
-#dflist = [cadre_df, gender_df, exp_key_df]
-#final_df = base_df
-#for i in dflist:
-#    final_df = pd.merge(final_df, i, on = "ID")
-#
-#tuple_dflist = [designation_df, dept_df, org_df, div_df, period_df]
-#for i in tuple_dflist:
-#    final_df = pd.merge(final_df, i, on = ["ID", "exp_no"])
+tuple_dflist = [designation_df, dept_df, org_df, div_df, period_df]
+for i in tuple_dflist:
+    final_df = pd.merge(final_df, i, on = ["ID", "exp_no"])
 
+final_df.to_csv(r'C:/Users/sapta/OneDrive/Desktop/Documents/codes/bureaucrat_scraping/IASexecutiverecords.csv', encoding = 'utf-8')
 
 
 
@@ -208,73 +202,6 @@ with concurrent.futures.ThreadPoolExecutor() as executor:
 ###   CODE ROUGHWORK 
 ##################
 '''
-
-#driver.get(centralDB)
-
-#driver = webdriver.Chrome(executable_path = 'C:/Users/sapta/Downloads/software/chromedriver_win32/chromedriver.exe')
-#executable_path = {'executable_path':'C:/Users/sapta/Downloads/software/chromedriver_win32/chromedriver.exe'}
-#Firefox will be used hereon
-# get web page
-#make cadre and year selections
-
-
-#click submit and follow on - currently using xpath
-
-
-x = re.findall("a href=\".*\" target" , soup_main)
-print(soup_main)
-driver.quit()
-#results = driver.find_element_by_xpath("//a[@title='Click to view ER sheet']/@href")
-
-time.sleep(20)
-infolink = driver.find_element_by_xpath('/html/body/table/tbody/tr[2]/td[2]/a')
-infolink.click()
-#time.sleep(5)
-#print()
-
-
-delay = 100 # seconds
-try:
-    myElem = WebDriverWait(driver, delay).until(EC.presence_of_element_located((By.NAME, 'Photo')))
-    print("Page is ready!")
-finally:
-    print("Loading took too much time!")
-
-# execute script to scroll down the page
-#driver.execute_script("window.scrollTo(0, document.body.scrollHeight);var lenOfPage=document.body.scrollHeight;return lenOfPage;")
-# sleep for 30s
-#time.sleep(30)
-
-
-newDB = driver.page_source #THIS IS WHERE THINGS GO WRONG
-soup_alt = BeautifulSoup(newDB, "lxml")
-#html_content = requests.get(newDB).text #HTML SOURCE HAS WEIRD TAGS, NOT THE SAME AS requests(URL)
-#soup_alt = BeautifulSoup(html_content, 'lxml')
-#driver.quit()
-
-#page_central = driver.page_source
-#page_central = requests.get(centralDB).text
-#soup_central = BeautifulSoup(page_central, 'lxml')
-print(soup_central.prettify())
-a = soup_central.find_all(True)
-print(a)
-
-a = soup_central.find(lambda tag: tag.name=='table' and tag.has_attr('border') and tag['border']=="1")
-print(a)
-b = a.find("table")
-print(b)
-
-URL = 'https://supremo.nic.in/ERSheetHtml.aspx?OffIDErhtml=14459&PageId='
-page = requests.get(URL)
-
-soup = BeautifulSoup(page.content, 'html.parser')
-print(soup)
-
-table1_body = soup.find_all('tbody')
-print(table1_body)
-
-result_1 = soup.find(id = 'one-column-emphasis')
-print(result_1.prettify())
 
 ########################
 #Code for scraping once biodata sheet is obtained
